@@ -1,4 +1,5 @@
 import re
+from models import CommandResponse
 
 commands_desc = {
     "!parse": "Returns a requirements-like formatted version of what you passed as a argument",
@@ -11,21 +12,30 @@ flags_desc = {
     "--name": "it goes after !create or !cp commands to indicate to the bot the file name"
 }
 
-def _desc ():
-    help_text = "HERE IS THE DESCRIPTION OF MY COMMANDS! HAVE FUN READING: \n"
-    lines = []
-    for key in commands_desc:
-        line = f"{key} -> {commands_desc[key]}"
-        lines.append(line)
-    return help_text + "\n".join(lines)
+def _desc (text=None, flag=None):
+    help_text = "HERE IS THE DESCRIPTION OF MY COMMANDS! HAVE FUN READING: \n\nCOMMANDS:\n"
+    lines = [f"{key} -> {commands_desc[key]}" for key in commands_desc]
+
+    help_text += "\n".join(lines) + "\n\nFLAGS:\n"
+
+    lines = [f"{key} -> {flags_desc[key]}" for key in flags_desc]
+
+    content = {"text": help_text + "\n".join(lines)}
+    resp = CommandResponse(mode="!desc", status="SUCCESS", content=content)
+    return resp
+    
 
 def _parse (text, flag=None):
     lines = [ line.strip() for line in text.splitlines() if line.strip()]
     formatted = ""
-    for line in lines[2:]:
-        formatted += re.sub("\s+", "==", line) + "\n"
-
-    return formatted
+    for line in lines:
+        if (not re.search(r"-{3,}|Version|Package", line)):
+            print(line)
+            formatted += re.sub("\s+", "==", line) + "\n"
+    
+    content = {"text": formatted}
+    resp = CommandResponse(mode="!parse", status="SUCCESS", content=content)
+    return resp
 
 def _create(text, flag=None):
     if flag is None:
@@ -43,14 +53,16 @@ def _create(text, flag=None):
 
     with open(f"rep/{filename}", "w") as file:
         file.write(text)
-    
-    return {
+
+    content = {
         "filename": "rep/" + filename,
         "text": text
     }
+    
+    return CommandResponse(mode="!create", status="SUCCESS", content=content, flag=flag["name"])
         
 def handle_args(text_input):
-    start = re.match("![a-z]+( --[a-z]+)?( [a-z\S]+)?", text_input.strip())
+    start = re.match("![a-z]+( --[a-z]+ [a-z\S]+)?", text_input.strip())
     
     results = start.group().split() if start else [None, None, None]
     text_content = text_input[(start.span()[1]+1):].strip() if start else text_input.strip()
@@ -63,8 +75,9 @@ def handle_args(text_input):
     }
 
 def _cp(text, flag=None):
-    parsed = _parse(text)
-    return _create(text=parsed, flag=flag)
+    parsed = _parse(text).content["text"]
+    resp = _create(text=parsed, flag=flag)
+    return CommandResponse(mode="!cp", status="SUCCESS", content=resp.content, flag=resp.flag)
 
 def get_command (command_name):
     commands = {

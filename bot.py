@@ -1,21 +1,18 @@
-from io import TextIOWrapper
-import re
 import discord
-from commands import handle_args, commands_desc, get_command
+from commands import handle_args, get_command
+#from repo_handlers import submit
 
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 token = ""
 
-with open("TOKEN.txt", "r") as reader:
+with open("BOT-env.txt", "r") as reader:
     token = reader.read()
-
 
 @client.event
 async def on_ready ():
-    print(f"LOGGED IN AS {client.user}")
-    
+    print(f"LOGGED IN AS {client.user}")   
 
 @client.event
 async def on_message (message):
@@ -30,10 +27,10 @@ async def on_message (message):
                 flag={ "name": flag, "arg": flag_arg } if flag else None, 
                 text=args["text_content"]
             )
-            if isinstance(command_result, dict):
-                with open(command_result["filename"], "rb") as file:
-                    await message.channel.send(file=discord.File(file, command_result["filename"]))
+            if command_result.mode == "!create" or command_result.mode == "!cp":
+                with open(command_result.content["filename"], "rb") as file:
+                    await message.channel.send(file=discord.File(file, command_result.content["filename"]))
             else:
-                await message.channel.send(command_result)
+                await message.channel.send(command_result.content["text"])
 
 client.run(token)
