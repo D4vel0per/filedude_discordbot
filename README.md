@@ -34,7 +34,7 @@ If everything goes well, you'll see something like this in the console:
 You'll need to copy this text for later usage. Now, you can ask to the File Dude to create the requirements.txt file,
 just typing this into a channel that he is part of:
 ```
-  !create <your pip list results>
+  !cp <your pip list results>
 ```
 
 If there are no errors, the bot will message back a file called "requirements.txt", containing the text you need.
