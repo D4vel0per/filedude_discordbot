@@ -33,7 +33,6 @@ def _parse (text, flag=None):
     formatted = ""
     for line in lines:
         if (not re.search(r"-{3,}|Version|Package", line)):
-            print(line)
             formatted += re.sub("\s+", "==", line) + "\n"
     
     content = {"text": formatted}
