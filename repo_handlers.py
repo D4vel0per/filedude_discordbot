@@ -13,25 +13,26 @@ class Store:
     def submit (self, filename, text):
         print(f"Creating {filename}...")
         try:
-            self.main.get_contents(f"D4v/{filename}")
-            print(f"Already exists. Skipping...")
+            self.main.get_contents(filename)
+            print(f"Already exists. Updating instead...")
+            self.update(filename=filename, new_text=text)
         except UnknownObjectException:
-            self.main.create_file(f"D4v/{filename}", f"Creating {filename}", text)
+            self.main.create_file(filename, f"Creating {filename}", text)
             print("Succesfully Created.")
 
     def remove (self, filename):
         print(f"Removing {filename}...")
         try:
-            contents = self.main.get_contents(f"D4v/{filename}")
-            self.main.delete_file(f"D4v/{filename}", f"Deleting {filename}", contents.sha)
+            contents = self.main.get_contents(filename)
+            self.main.delete_file(filename, f"Deleting {filename}", contents.sha)
         except UnknownObjectException:
             print(f"File {filename} wasn't found")
 
     def update(self, filename, new_text=None):
         print(f"Updating {filename}...")
         try:
-            contents = self.main.get_contents(f"D4v/{filename}")
+            contents = self.main.get_contents(filename)
             if new_text:
-                self.main.update_file(f"D4v/{filename}", f"Updating {filename}", new_text, sha=contents.sha)
+                self.main.update_file(filename, f"Updating {filename}", new_text, sha=contents.sha)
         except UnknownObjectException:
             print(f"File {filename} wasn't found")

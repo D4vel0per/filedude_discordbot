@@ -1,5 +1,6 @@
 import re
 from models import CommandResponse
+from repo_handlers import connect
 
 commands_desc = {
     "!parse": "Returns a requirements-like formatted version of what you passed as a argument",
@@ -11,6 +12,8 @@ commands_desc = {
 flags_desc = {
     "--name": "it goes after !create or !cp commands to indicate to the bot the file name"
 }
+
+STORE = connect()
 
 def _desc (text=None, flag=None):
     help_text = "HERE IS THE DESCRIPTION OF MY COMMANDS! HAVE FUN READING: \n\nCOMMANDS:\n"
@@ -40,7 +43,7 @@ def _parse (text, flag=None):
 def _create(text, flag=None):
     if flag is None:
         flag = { "name": "--name", "arg": "requirements.txt" }
-        filename = "requirements.txt"
+        filename = "unknown/requirements.txt"
 
     elif flag["name"] == "--name" and flag["arg"]:
         filename = flag["arg"]
@@ -49,13 +52,15 @@ def _create(text, flag=None):
         filename += ".txt"
 
     if "/" in filename:
-        filename = filename[(filename.find("/")+1):]
+        last_index = len(filename) - filename[::-1].find("/") - 1
+        folder = filename[:(last_index+1)]
+        filename = filename[(last_index+1):]
 
-    with open(f"rep/{filename}", "w") as file:
-        file.write(text)
+    STORE.submit(folder + filename, text)
 
     content = {
-        "filename": "rep/" + filename,
+        "filename": filename,
+        "dir": folder,
         "text": text
     }
     
