@@ -46,6 +46,7 @@ def _create(text, flag=None):
 
     elif flag["name"] == "--name" and flag["arg"]:
         filename = flag["arg"]
+    
 
     if ".txt" not in filename:
         filename += ".txt"

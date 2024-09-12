@@ -23,7 +23,8 @@ async def on_message (message):
         flag_arg = args["flag_arg"] if flag else None
 
         if command and (args["command"] == "!create" or args["command"] == "!cp"):
-            flag_arg = f"{str(message.author)}/{flag_arg}" if flag_arg else f"{str(message.author)}/requirements.txt"
+            flag = flag or "--name"
+            flag_arg = f"{str(message.author)}/{flag_arg or 'requirements.txt'}"
 
         if command:
             command_result = command(
