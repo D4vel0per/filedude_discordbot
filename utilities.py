@@ -22,3 +22,12 @@ async def create_main_channels(guilds: List[Guild]=None):
         for guild in guilds:
             channel = await guild.create_text_channel("File Dude - Discord Bot")
             yield channel
+
+
+async def send_yield(client:Client, message:str):
+    main_chs = get_main_channels(client) 
+    available_channels = list(filter(lambda guild: guild["channel"], main_chs.values()))
+    available_channels = [ ch["channel"] for ch in available_channels ]
+
+    for channel in available_channels:
+        await channel.send(message)

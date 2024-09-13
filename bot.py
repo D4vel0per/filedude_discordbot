@@ -1,7 +1,9 @@
 import io
 import discord
 from commands import handle_args, get_command
-from utilities import create_main_channels, get_main_channels
+from utilities import create_main_channels, get_main_channels, send_yield
+from datetime import datetime, timezone
+import asyncio
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -30,6 +32,10 @@ async def on_ready ():
     [print(f"({ch.guild.name}) {ch.name}") for ch in all_channels]
 
 @client.event
+async def on_disconnect ():
+    print("Client disconnected.")
+    
+@client.event
 async def on_message (message):
     if message.author != client.user and message.content.startswith("!"):
         args = handle_args(message.content)
@@ -54,4 +60,33 @@ async def on_message (message):
             else:
                 await message.channel.send(command_result.content["text"])
 
-client.run(token)
+async def check_bot():
+    await asyncio.sleep(30)
+    while True:
+        now = datetime.now(timezone.utc)
+        if now.hour >= 20 or now.hour <= 6:
+            print("Closing...")
+            utc_formatted = now.strftime("%H:%M%p").replace("AM", "a.m.").replace("PM", "p.m.")
+            link = "\nYou can search what will be your time at "
+            link += "https://dateful.com/convert/utc?t=" + utc_formatted
+            await send_yield(
+                client=client, 
+                message=f"I'm leaving for now!\nI'll be back at UTC {utc_formatted + link}"
+            )
+
+            await client.close()
+            print("Succesfully closed.")
+            break
+        
+        await asyncio.sleep(15*60)
+
+async def main():
+    await asyncio.gather(
+        client.start(token),
+        check_bot()
+    )
+        
+
+if __name__ == "__main__":
+    asyncio.run(main())
+    
