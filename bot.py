@@ -1,6 +1,7 @@
 import io
 import discord
 from commands import handle_args, get_command
+from utilities import create_main_channels, get_main_channels
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -12,7 +13,21 @@ with open("BOT-env.txt", "r") as reader:
 
 @client.event
 async def on_ready ():
+    main_channels = get_main_channels(client)
+    without_main = [ 
+        main_channels[g]["guild_obj"] for g in main_channels if not main_channels[g]["channel"]
+    ]
+    new_channels = create_main_channels(without_main)
+
+    all_channels = [ guild["channel"] for guild in main_channels.values() ]
+    all_channels.extend([ch async for ch in new_channels])
+
+    for channel in all_channels:
+        await channel.send("I'm online!\nSend a message with the text '!desc' to get a description of the commands available.")
+
     print(f"LOGGED IN AS {client.user}")   
+    print("CHANNELS:\n")
+    [print(f"({ch.guild.name}) {ch.name}") for ch in all_channels]
 
 @client.event
 async def on_message (message):
