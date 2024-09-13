@@ -64,7 +64,7 @@ async def check_bot():
     await asyncio.sleep(30)
     while True:
         now = datetime.now(timezone.utc)
-        if now.hour >= 20 or now.hour <= 6:
+        if now.hour <= 10 and now.hour >= 6:
             print("Closing...")
             utc_formatted = now.strftime("%H:%M%p").replace("AM", "a.m.").replace("PM", "p.m.")
             link = "\nYou can search what will be your time at "
