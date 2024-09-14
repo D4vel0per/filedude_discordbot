@@ -62,16 +62,15 @@ async def on_message (message):
 
 async def check_bot():
     await asyncio.sleep(30)
-    while True:
+    while not client.is_closed():
         now = datetime.now(timezone.utc)
         if now.hour <= 10 and now.hour >= 6:
             print("Closing...")
-            utc_formatted = now.strftime("%H:%M%p").replace("AM", "a.m.").replace("PM", "p.m.")
-            link = "\nYou can search what will be your time at "
-            link += "https://dateful.com/convert/utc?t=" + utc_formatted
+            link = "\nYou can check what will be your time [here]"
+            link += "(https://dateful.com/convert/utc?t=10a.m.)"
             await send_yield(
                 client=client, 
-                message=f"I'm leaving for now!\nI'll be back at UTC {utc_formatted + link}"
+                message=f"I'm leaving for now! I'll be back at UTC 10:00a.m. {link}"
             )
 
             await client.close()
@@ -89,4 +88,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-    
