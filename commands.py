@@ -13,7 +13,7 @@ flags_desc = {
     "--name": "it goes after !create or !cp commands to indicate to the bot the file name"
 }
 
-STORE = connect()
+STORE = connect("DEV")
 
 def _desc (text=None, flag=None):
     help_text = "HERE IS THE DESCRIPTION OF MY COMMANDS! HAVE FUN READING: \n\nCOMMANDS:\n"

@@ -22,7 +22,7 @@ async def on_ready ():
     ]
     new_channels = create_main_channels(without_main)
 
-    all_channels = [ guild["channel"] for guild in main_channels.values() ]
+    all_channels = [ guild["channel"] for guild in main_channels.values() if guild["channel"]]
     all_channels.extend([ch async for ch in new_channels])
 
     for channel in all_channels:
