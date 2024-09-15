@@ -84,7 +84,7 @@ async def main():
         client.start(token),
         check_bot()
     )
-        
+    await asyncio.sleep(605) # The server shuts down 10 minutes after disconnection
 
 if __name__ == "__main__":
     asyncio.run(main())
