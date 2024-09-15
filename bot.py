@@ -1,17 +1,18 @@
 import io
 import discord
+import os
+from dotenv import load_dotenv
 from commands import handle_args, get_command
 from utilities import create_main_channels, get_main_channels, send_yield
 from datetime import datetime, timezone
 import asyncio
 
+load_dotenv()
+
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
-token = ""
-
-with open("BOT-env.txt", "r") as reader:
-    token = reader.read()
+token = os.getenv("BOT_DEV_TOKEN")
 
 @client.event
 async def on_ready ():
