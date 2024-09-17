@@ -45,7 +45,7 @@ async def check_bot():
     await asyncio.sleep(30)
     while not bot.is_closed():
         now = datetime.now(timezone.utc)
-        if now.hour <= 10 and now.hour >= 6:
+        if now.hour < 10 and now.hour >= 6:
             print("Closing...")
             link = "\nYou can check what will be your time [here]"
             link += "(https://dateful.com/convert/utc?t=10a.m.)"
@@ -64,7 +64,7 @@ async def main(bot):
     bot = await set_commands(bot)
     await asyncio.gather(
         bot.start(token),
-        #check_bot()
+        check_bot()
     )
     await asyncio.sleep(605) # The server shuts down 10 minutes after disconnection
 
