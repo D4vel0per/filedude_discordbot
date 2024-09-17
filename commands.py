@@ -1,6 +1,16 @@
-import re
-from models import CommandResponse
 from repo_handlers import connect
+from command_helpers import (
+    Conditional, 
+    CreationFlags, 
+    send_text_file, 
+    parse_text
+)
+from utilities import (
+    dot_txt, 
+    ends_at, 
+    optionalInfo, 
+    repl_separators
+)
 
 commands_desc = {
     "!parse": "Returns a requirements-like formatted version of what you passed as a argument",
@@ -10,94 +20,69 @@ commands_desc = {
 }
 
 flags_desc = {
-    "--name": "it goes after !create or !cp commands to indicate to the bot the file name"
+    "--name": "it goes after !create or !cp commands to indicate to the bot the file name",
+    "--text": "it goes after !create or !cp commands to indicate to the bot the file content"
 }
 
 STORE = connect("DEV")
 
-def _desc (text=None, flag=None):
-    help_text = "HERE IS THE DESCRIPTION OF MY COMMANDS! HAVE FUN READING: \n\nCOMMANDS:\n"
-    lines = [f"{key} -> {commands_desc[key]}" for key in commands_desc]
+async def set_commands(bot):
+    @bot.command()
+    async def create(ctx, *, input):
+        try:
+            flags = await CreationFlags.convert(ctx, input)
+            new_flags = optionalInfo(
+                {"text": flags.text},
+                {"text": input[ends_at(flags.name.split()[0], input):]},
+                conditional=Conditional(bool(flags.text), "filename", flags.name, flags.name.split()[0])
+            )
 
-    help_text += "\n".join(lines) + "\n\nFLAGS:\n"
+            filename = dot_txt(repl_separators(new_flags["filename"]))
+            text = new_flags["text"]
+            await ctx.send(f"Preparing {filename}...")
+            await send_text_file(ctx, filename, text)
 
-    lines = [f"{key} -> {flags_desc[key]}" for key in flags_desc]
+        except Exception as e:
+            print(type(e))
+            print(e) #handle error
 
-    content = {"text": help_text + "\n".join(lines)}
-    resp = CommandResponse(mode="!desc", status="SUCCESS", content=content)
-    return resp
-    
+    @bot.command()
+    async def desc(ctx):
+        help_text = "HERE IS THE DESCRIPTION OF MY COMMANDS! HAVE FUN READING: \n\nCOMMANDS:\n"
+        lines = [f"{key} -> {commands_desc[key]}" for key in commands_desc]
 
-def _parse (text, flag=None):
-    lines = [ line.strip() for line in text.splitlines() if line.strip()]
-    formatted = ""
-    for line in lines:
-        if (not re.search(r"-{3,}|Version|Package", line)):
-            formatted += re.sub("\s+", "==", line) + "\n"
-    
-    content = {"text": formatted}
-    resp = CommandResponse(mode="!parse", status="SUCCESS", content=content)
-    return resp
+        help_text += "\n".join(lines) + "\n\nFLAGS:\n"
 
-def _create(text, flag=None):
-    if flag is None:
-        flag = { "name": "--name", "arg": "requirements.txt" }
-        filename = "unknown/requirements.txt"
+        lines = [f"{key} -> {flags_desc[key]}" for key in flags_desc]
 
-    elif flag["name"] == "--name" and flag["arg"]:
-        filename = flag["arg"]
-    
+        help_text += "\n".join(lines)
 
-    if ".txt" not in filename:
-        filename += ".txt"
+        await ctx.send(help_text)
 
-    if "/" in filename:
-        last_index = len(filename) - filename[::-1].find("/") - 1
-        folder = filename[:(last_index+1)]
-        filename = filename[(last_index+1):]
+    @bot.command() 
+    async def parse(ctx, *, text):
+        if text:
+            await ctx.send(parse_text(text))
+        else:
+            await ctx.send("I can't parse nothingness")
 
-    STORE.submit(folder + filename, text)
+    @bot.command()
+    async def cp(ctx, *, input):
+        try:
+            flags = await CreationFlags.convert(ctx, input)
+            new_flags = optionalInfo(
+                {"text": flags.text},
+                {"text": input[ends_at(flags.name.split()[0], input):]},
+                conditional=Conditional(bool(flags.text), "filename", flags.name, flags.name.split()[0])
+            )
 
-    content = {
-        "filename": filename,
-        "dir": folder,
-        "text": text
-    }
-    
-    return CommandResponse(mode="!create", status="SUCCESS", content=content, flag=flag["name"])
-        
-def handle_args(text_input):
-    start = re.match("![a-z]+( --[a-z]+ [a-z\S]+)?", text_input.strip())
-    
-    results = start.group().split() if start else [None, None, None]
-    text_content = text_input[(start.span()[1]+1):].strip() if start else text_input.strip()
-    
-    return {
-        "command": results[0],
-        "flag": results[1] if len(results) >= 2 else None,
-        "flag_arg": results[2] if len(results) >= 3 else None,
-        "text_content": text_content
-    }
+            filename = dot_txt(repl_separators(new_flags["filename"]))
+            text = new_flags["text"]
+            await ctx.send(f"Preparing {filename}...")
+            await send_text_file(ctx, filename, parse_text(text))
 
-def _cp(text, flag=None):
-    parsed = _parse(text).content["text"]
-    resp = _create(text=parsed, flag=flag)
-    return CommandResponse(mode="!cp", status="SUCCESS", content=resp.content, flag=resp.flag)
+        except Exception as e:
+            print(type(e))
+            print(e) #handle error
 
-def get_command (command_name):
-    commands = {
-        "!parse": _parse,
-        "!create": _create,
-        "!cp": _cp,
-        "!desc": _desc
-    }
-    flags = {
-        "!parse": [],
-        "!create": ["--name"],
-        "!cp": ["--name"],
-        "!desc": []
-    }
-    if command_name in commands:
-        return [commands[command_name], flags[command_name]]
-    else:
-        return [None, None]
+    return bot

@@ -1,22 +1,27 @@
-import io
 import discord
+from discord.ext import commands
 import os
 from dotenv import load_dotenv
-from commands import handle_args, get_command
-from utilities import create_main_channels, get_main_channels, send_yield
 from datetime import datetime, timezone
 import asyncio
+from commands import set_commands
+
+from utilities import (
+    create_main_channels, 
+    get_main_channels, 
+    send_yield
+)
 
 load_dotenv()
 
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
 token = os.getenv("BOT_DEV_TOKEN")
 
-@client.event
+@bot.event
 async def on_ready ():
-    main_channels = get_main_channels(client)
+    main_channels = get_main_channels(bot)
     without_main = [ 
         main_channels[g]["guild_obj"] for g in main_channels if not main_channels[g]["channel"]
     ]
@@ -28,64 +33,40 @@ async def on_ready ():
     for channel in all_channels:
         await channel.send("I'm online!\nSend a message with the text '!desc' to get a description of the commands available.")
 
-    print(f"LOGGED IN AS {client.user}")   
+    print(f"LOGGED IN AS {bot.user}")   
     print("CHANNELS:\n")
     [print(f"({ch.guild.name}) {ch.name}") for ch in all_channels]
 
-@client.event
+@bot.event
 async def on_disconnect ():
     print("Client disconnected.")
-    
-@client.event
-async def on_message (message):
-    if message.author != client.user and message.content.startswith("!"):
-        args = handle_args(message.content)
-        command, flags = get_command(args["command"])
-        flag = args["flag"] if args["flag"] in flags else None
-        flag_arg = args["flag_arg"] if flag else None
-
-        if command and (args["command"] == "!create" or args["command"] == "!cp"):
-            flag = flag or "--name"
-            flag_arg = f"{str(message.author)}/{flag_arg or 'requirements.txt'}"
-
-        if command:
-            command_result = command(
-                flag={ "name": flag, "arg": flag_arg } if flag else None,
-                text=args["text_content"]
-            )
-            if command_result.mode == "!create" or command_result.mode == "!cp":
-                bytes_text = command_result.content["text"].encode(encoding="utf-8")
-                with io.BytesIO(bytes_text) as file:
-                    await message.channel.send(
-                        file=discord.File(file, command_result.content["filename"]))
-            else:
-                await message.channel.send(command_result.content["text"])
 
 async def check_bot():
     await asyncio.sleep(30)
-    while not client.is_closed():
+    while not bot.is_closed():
         now = datetime.now(timezone.utc)
-        if now.hour <= 10 and now.hour >= 6:
+        if now.hour < 10 and now.hour >= 6:
             print("Closing...")
             link = "\nYou can check what will be your time [here]"
             link += "(https://dateful.com/convert/utc?t=10a.m.)"
             await send_yield(
-                client=client, 
+                client=bot, 
                 message=f"I'm leaving for now! I'll be back at UTC 10:00a.m. {link}"
             )
 
-            await client.close()
+            await bot.close()
             print("Succesfully closed.")
             break
         
         await asyncio.sleep(15*60)
 
-async def main():
+async def main(bot):
+    bot = await set_commands(bot)
     await asyncio.gather(
-        client.start(token),
+        bot.start(token),
         check_bot()
     )
     await asyncio.sleep(605) # The server shuts down 10 minutes after disconnection
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(main(bot))
