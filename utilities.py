@@ -1,6 +1,7 @@
 import re
 from typing import List
 from discord import Client, Guild
+from command_helpers import Conditional
 
 is_main_channel = lambda channel, regex=r"(?i)file[\s-]*dude": bool(re.search(regex, channel.name))
 
@@ -31,3 +32,33 @@ async def send_yield(client:Client, message:str):
 
     for channel in available_channels:
         await channel.send(message)
+
+def optionalInfo (flags:dict, default_values:dict, conditional:Conditional):
+    final_values = {}
+    for k in flags:
+        if k in default_values and not flags[k]:
+            final_values[k] = default_values[k]
+        else:
+            final_values[k] = flags[k]
+
+    prop = conditional.prop
+    value = conditional.value()
+    final_values[prop] = value
+
+    return final_values
+
+def dot_txt(string):
+    if '.txt' in string:
+        return string
+    else:
+        return string + ".txt"
+    
+def repl_separators(string):
+    return re.sub(" +|-+", "_", string)
+
+def ends_at (pattern, string):
+    result = re.search(pattern, string)
+    if result:
+        return result.span()[1] + 1
+    else:
+        return 0
