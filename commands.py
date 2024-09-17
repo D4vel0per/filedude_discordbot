@@ -20,8 +20,8 @@ commands_desc = {
 }
 
 flags_desc = {
-    "--name": "it goes after !create or !cp commands to indicate to the bot the file name",
-    "--text": "it goes after !create or !cp commands to indicate to the bot the file content"
+    "--name=": "it goes after !create or !cp commands to indicate to the bot the file name",
+    "--text=": "it goes after !create or !cp commands to indicate to the bot the file content"
 }
 
 STORE = connect("DEV")
