@@ -6,7 +6,7 @@ import os
 load_dotenv()
 
 def connect(): # Add DEV or PROD mode handling
-    token = os.getenv("GITHUB_STORING_TOKEN")
+    token = os.getenv("GITHUB_STORING_DEV_TOKEN")
     g = Github(auth=Auth.Token(token))
     repo = g.get_repo("D4vel0per/filedude_userfiles")
     return Store(repo)
