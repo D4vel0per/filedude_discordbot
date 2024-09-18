@@ -48,14 +48,15 @@ async def set_commands(bot):
 
     @bot.command()
     async def desc(ctx):
-        help_text = "HERE IS THE DESCRIPTION OF MY COMMANDS! HAVE FUN READING: \n\nCOMMANDS:\n"
-        lines = [f"{key} -> {commands_desc[key]}" for key in commands_desc]
+        help_text = "Hi! I'm the File Dude Bot, a list of my commands and flags are down below:\n"
+        help_text += "# Commands:\n"
+        lines = [f"`{key}`\n> {commands_desc[key]}\n" for key in commands_desc]
 
-        help_text += "\n".join(lines) + "\n\nFLAGS:\n"
+        help_text += "* " + "\n* ".join(lines) + "\n# Flags:\n"
 
-        lines = [f"{key} -> {flags_desc[key]}" for key in flags_desc]
+        lines = [f"`{key}`\n> {flags_desc[key]}\n" for key in flags_desc]
 
-        help_text += "\n".join(lines)
+        help_text += "* " + "\n* ".join(lines)
 
         await ctx.send(help_text)
 
