@@ -43,3 +43,16 @@ class Store:
                 self.main.update_file(filename, f"Updating {filename}", new_text, sha=contents.sha)
         except UnknownObjectException:
             print(f"File {filename} wasn't found")
+
+    def get(self, filename):
+        print(f"Trying to get {filename}...")
+        try:
+            response = self.main.get_contents(filename)
+            if response.type == "dir":
+                response = self.main.get_dir_contents(response.path)
+            print(response)
+            return response
+            
+        except Exception as e:
+            print(type(e))
+            print(e)
