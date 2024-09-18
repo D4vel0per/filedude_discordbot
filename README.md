@@ -110,23 +110,7 @@ The bot would return you a requirements.txt file containing your text.
 
 - ### `!desc`
 If you need to check which commands are available and what does everyone of
-them, you can run this command, it will output this message:
-
-> HERE IS THE DESCRIPTION OF MY COMMANDS! HAVE FUN READING: 
->
-> COMMANDS:
->
->!parse -> Returns a requirements-like formatted version of what you passed as a argument
->
->!create -> Creates a text file containing the text from the user input
->
->!cp -> Fusion between !create and !parse: creates a requirements.txt file from user input
->
->!desc -> Prints this message
->
->FLAGS:
->
->--name -> it goes after !create or !cp commands to indicate to the bot the file name
+them, you can run this command, it will output a help message.
 
 ## Flags
 These are pseudo-arguments that allow to set some info about command execution,
@@ -138,14 +122,44 @@ This is a flag that sets the filename of the file you're creating, you can
 use it like this:
 
 ```
-    !create --name hello.txt Hello, how are you?
+    !create --name=hello.txt Hello, how are you?
 ```
 
 Where: 
 
  `hello.txt` -> File name
  
- `Hello, how are you?` -> File text
+ `Hello, how are you?` -> File text content
  
  > _Note: if no name is provided, the file name will
- be set to the first word in the file_
+ be set to_ `requirements.txt`
+
+- ### `--text`
+Works with `!create` and `!cp`.
+This is a flag that sets the text content of the file you're creating, you can
+use it like this:
+
+```
+    !create --text= package==version
+```
+
+Where: 
+
+ File name -> `requirements.txt` (no name provided, default is `requirements.txt`)
+ 
+ `package==version` -> File text content
+ 
+ The ideal way to work with this flag, is using both `--name` and `--text`, just like:
+ 
+```
+    !create --name=filedude.txt --text= I AM THE FILE DUDE
+```
+
+Where: 
+
+ `filedude.txt` -> File name
+ 
+ `I AM THE FILE DUDE` -> File text content
+ 
+ > _Note: if no text is provided, the file text content will
+ be set to_ " "
