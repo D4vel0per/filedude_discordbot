@@ -94,7 +94,6 @@ async def cp(ctx, *, input):
 @command()
 async def get(ctx, *, input:str=""):
     try:
-        print(input)
         flags = await ReadFlags.convert(ctx, input)
         dir_info = get_dir_info(
             str(ctx.author),
@@ -136,8 +135,10 @@ async def get(ctx, *, input:str=""):
                 
             message2 = (f"### I found these folders in {root_folder}/:\n * " +
             "\n * ".join(folders_found)) if folders_found else "### No folders found."
-                
-            await ctx.send(message1)
+
+            if not flags.folders:   
+                await ctx.send(message1)
+
             await ctx.send(message2)
 
     except Exception as e:
@@ -148,7 +149,6 @@ async def get(ctx, *, input:str=""):
 async def delete(ctx, *, input:str=""):
     try:
         flags = await ReadFlags.convert(ctx, input)
-        print(flags.folders)
         dir_info = get_dir_info(
             str(ctx.author),
             re.sub(" *--folders", "/", flags.folders) if flags.folders else input

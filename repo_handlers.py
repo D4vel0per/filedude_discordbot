@@ -74,11 +74,15 @@ class Store:
                     "is_dir": content.type == "dir",
                     "path": f"{content.path}"
                 }
-                deleted.append(new_deletion)
-                if content.type == "dir":
-                    deleted.extend(self.delete(content.path))
-                elif not only_folders:
-                    self.main.delete_file(content.path, f"Deleting {content.path} file...", sha=content.sha)
+                if not only_folders:
+                    deleted.append(new_deletion)
+                    if content.type == "dir":
+                        deleted.extend(self.delete(content.path))
+                    else:
+                        self.main.delete_file(content.path, f"Deleting {content.path} file...", sha=content.sha)
+                else:
+                    if content.type == "dir":
+                        deleted.append(new_deletion)
             print("RESPONSE AFTER: ", response)
             print("DELETED: ", deleted)
             return deleted
