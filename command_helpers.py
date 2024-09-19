@@ -23,12 +23,13 @@ async def send_text_file(ctx, filename, text):
     folder = ""
     if "/" in filename:
         last_index = len(filename) - filename[::-1].find("/") - 1
-        folder = filename[:(last_index+1)] + "/"
+        folder = filename[:(last_index+1)]
         filename = filename[(last_index+1):]
 
     text = text or " "
     bytes_text = text.encode(encoding="utf-8")
     file = io.BytesIO(bytes_text)
+
     STORE.submit(f"{ctx.author}/{folder}{filename}", text)
 
     with io.BytesIO(bytes_text) as file:

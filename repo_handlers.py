@@ -1,4 +1,5 @@
-from github import Github, Auth
+from typing import List
+from github import Github, Auth, ContentFile
 from github.GithubException import UnknownObjectException
 from dotenv import load_dotenv
 import os
@@ -44,15 +45,21 @@ class Store:
         except UnknownObjectException:
             print(f"File {filename} wasn't found")
 
-    def get(self, filename):
+    def get(self, filename, recursive=True):
         print(f"Trying to get {filename}...")
         try:
             response = self.main.get_contents(filename)
-            if response.type == "dir":
-                response = self.main.get_dir_contents(response.path)
-            print(response)
-            return response
-            
+            results = []
+            if not isinstance(response, List):
+                return [response]
+            for content in response:
+                results.append(content)
+                if content.type == "dir" and recursive:
+                    results.extend(self.get(content.path))
+                    
+            return results
+        except UnknownObjectException as e:
+            return []
         except Exception as e:
             print(type(e))
             print(e)

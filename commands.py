@@ -1,3 +1,8 @@
+import asyncio
+import io
+import re
+import discord
+from github import UnknownObjectException
 from repo_handlers import connect
 from command_helpers import (
     Conditional, 
@@ -40,7 +45,8 @@ async def set_commands(bot):
             filename = dot_txt(repl_separators(new_flags["filename"]))
             text = new_flags["text"]
             await ctx.send(f"Preparing {filename}...")
-            await send_text_file(ctx, filename, text)
+            check_file = await send_text_file(ctx, filename, text)
+            print(check_file)
 
         except Exception as e:
             print(type(e))
@@ -85,4 +91,106 @@ async def set_commands(bot):
             print(type(e))
             print(e) #handle error
 
+    @bot.command()
+    async def get(ctx, *, input:str=None):
+        try:
+            plain_folders = False
+            root_folder = str(ctx.author)
+            file_name = input
+            if input:
+                dir_split = [str(ctx.author), *input.split("/")]
+                file_name = dir_split.pop().strip()
+                if file_name:
+                    file_name = file_name.split()[0]
+                root_folder = "/".join(dir_split)
+                if not file_name:
+                    await ctx.send(f"Trying to reach all files in {root_folder}/ folder")
+                elif "--folders" in input:
+                    plain_folders = True
+                    root_folder = re.sub("/+$", "", root_folder)
+                    if not file_name.strip().startswith("--"):
+                        root_folder += "/" + file_name
+                    
+                    await ctx.send(f"Getting all your folders at {root_folder}/...")
+
+                elif not re.search(r"\.[a-zA-Z]+$", file_name):
+                    file_name += ".txt"
+                    await ctx.send(f"Trying to reach {file_name}")
+            else:
+                await ctx.send(f"Searching all your files at file dude's house...")
+
+            if plain_folders:
+                results = STORE.get(root_folder)
+                folders = list(filter(lambda result: result.type == "dir", results))
+                folders = [ 
+                    re.sub(f"^{root_folder}/", "", folder.path) + "/" for folder in folders 
+                ]
+                if folders:
+                    await ctx.send("Your folders are the following:" if folders else "You have no folders here.")
+                    await ctx.send("* " + "\n * ".join(folders))
+                else:
+                    await ctx.send("You have no folders here.")
+            
+            else:
+                results = STORE.get(
+                    f"{root_folder}{'/' + file_name if file_name else ''}"
+                )
+
+                if len(results) == 0:
+                    await ctx.send("Sorry, file not found :C")
+                    return 
+                
+                elif len(results) == 1:
+                    result_bytes = io.BytesIO(results[0].decoded_content)
+                    await ctx.send(file=discord.File(result_bytes, results[0].name))
+                
+                else:
+                    files_found = list(map(
+                        lambda content: content.path.replace(root_folder + "/", "").replace("/", " -> "),
+                        filter(
+                            lambda content: content.type != "dir",
+                            results
+                        )
+                    ))
+
+                    def key(a):
+                        return len(re.findall(" -> ", a))
+
+                    files_found.sort(key=key)
+
+                    folders_found = list(map(
+                        lambda content: content.path.replace(root_folder + "/", "") + "/",
+                        filter(
+                            lambda content: content.type == "dir",
+                            results
+                        )
+                    ))
+
+                    await ctx.send(
+                        f"### I found these files in {root_folder}/:\n * " +
+                        "\n * ".join(files_found)
+                    )
+                    if folders_found:
+                        await ctx.send(
+                            f"### I found these folders in {root_folder}/:\n * " + 
+                            "\n * ".join(folders_found)
+                        )
+
+        except Exception as e:
+            print(type(e))
+            print(e)
+
     return bot
+
+def group_list(array:list, size:int):
+    result = []
+    if size >= len(array):
+        return [array]
+    
+    for i in range(0, len(array), size):
+        print(i + size)
+        if i + size < len(array):
+            result.append(array[i:(i + size)])
+        else:
+            result.append(array[i:])
+    return result
