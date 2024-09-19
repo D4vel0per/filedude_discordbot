@@ -64,12 +64,26 @@ class Store:
             print(type(e))
             print(e)
 
-    def delete(self, filename, recursive=True):
+    def delete(self, filename, only_folders=False):
         try:
-            response = self.get(filename, recursive)
+            response = self.get(filename, recursive=False)
+            deleted = []
+            print("RESPONSE BEFORE: ", response)
             for content in response:
-                self.main.delete_file(content.path, f"Deleting {filename}...", sha=content.sha)
+                new_deletion = {
+                    "is_dir": content.type == "dir",
+                    "path": f"{content.path}"
+                }
+                deleted.append(new_deletion)
+                if content.type == "dir":
+                    deleted.extend(self.delete(content.path))
+                elif not only_folders:
+                    self.main.delete_file(content.path, f"Deleting {content.path} file...", sha=content.sha)
+            print("RESPONSE AFTER: ", response)
+            print("DELETED: ", deleted)
+            return deleted
         except UnknownObjectException as e:
+            print(e)
             return []
         except Exception as e:
             print(type(e))

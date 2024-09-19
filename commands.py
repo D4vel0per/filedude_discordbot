@@ -180,6 +180,90 @@ async def set_commands(bot):
         except Exception as e:
             print(type(e))
             print(e)
+    @bot.command()
+    async def delete(ctx, *, input:str=None):
+        try:
+            plain_folders = False
+            root_folder = str(ctx.author)
+            file_name = input
+            if input:
+                dir_split = [str(ctx.author), *input.split("/")]
+                file_name = dir_split.pop().strip().split()[0]
+                root_folder = "/".join(dir_split)
+
+                if not file_name:
+                    await ctx.send(f"Trying to delete all files in {root_folder}/ folder")
+                elif "--folders" in input:
+                    plain_folders = True
+                    root_folder = re.sub("/+$", "", root_folder)
+                    if not file_name.strip().startswith("--"):
+                        root_folder += "/" + file_name
+                    
+                    await ctx.send(f"Deleting all your folders at {root_folder}/...")
+
+                elif not re.search(r"\.[a-zA-Z]+$", file_name):
+                    file_name += ".txt"
+                    await ctx.send(f"Trying to delete {file_name}...")
+            else:
+                await ctx.send(f"Deleting all your files at file dude's house...")
+
+            if plain_folders:
+                results = STORE.delete(root_folder, only_folders=True)
+                folders = list(filter(lambda result: result.type == "dir", results))
+                folders = [ 
+                    re.sub(f"^{root_folder}/", "", folder.path) + "/" for folder in folders 
+                ]
+                await ctx.send("The following folders were deleted:" if folders else "No folders deleted.")
+                await ctx.send("* " + "\n * ".join(folders))
+            
+            else:
+                results = STORE.delete(
+                    f"{root_folder}{'/' + file_name if file_name else ''}"
+                )
+
+                if len(results) == 0:
+                    await ctx.send("Sorry, file not found :C")
+                    return 
+                
+                elif len(results) == 1:
+                    result_bytes = io.BytesIO(results[0].decoded_content)
+                    await ctx.send(file=discord.File(result_bytes, results[0].name))
+                
+                else:
+                    files_deleted = list(map(
+                        lambda content: content["path"].replace(root_folder + "/", "").replace("/", " -> "),
+                        filter(
+                            lambda content: not content["is_dir"],
+                            results
+                        )
+                    ))
+
+                    def key(a):
+                        return len(re.findall(" -> ", a))
+
+                    files_deleted.sort(key=key)
+
+                    folders_deleted = list(map(
+                        lambda content: content["path"].replace(root_folder + "/", "") + "/",
+                        filter(
+                            lambda content: content["is_dir"],
+                            results
+                        )
+                    ))
+
+                    await ctx.send(
+                        f"### These files were deleted at {root_folder}/:\n * " +
+                        "\n * ".join(files_deleted)
+                    )
+                    if folders_deleted:
+                        await ctx.send(
+                            f"### These folders were deleted in {root_folder}/:\n * " + 
+                            "\n * ".join(folders_deleted)
+                        )
+
+        except Exception as e:
+            print(type(e))
+            print(e)
 
     return bot
 
