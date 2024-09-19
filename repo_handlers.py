@@ -63,3 +63,14 @@ class Store:
         except Exception as e:
             print(type(e))
             print(e)
+
+    def delete(self, filename, recursive=True):
+        try:
+            response = self.get(filename, recursive)
+            for content in response:
+                self.main.delete_file(content.path, f"Deleting {filename}...", sha=content.sha)
+        except UnknownObjectException as e:
+            return []
+        except Exception as e:
+            print(type(e))
+            print(e)
