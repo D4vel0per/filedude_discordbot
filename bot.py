@@ -41,6 +41,7 @@ async def on_ready ():
 async def on_disconnect ():
     print("Client disconnected.")
 
+
 async def check_bot():
     await asyncio.sleep(30)
     while not bot.is_closed():
