@@ -1,12 +1,12 @@
-import asyncio
 import io
 import re
 import discord
-from github import UnknownObjectException
+from discord.ext.commands import Bot, command
 from repo_handlers import connect
 from command_helpers import (
     Conditional, 
-    CreationFlags, 
+    CreationFlags,
+    ReadFlags, 
     send_text_file, 
     parse_text
 )
@@ -31,251 +31,190 @@ flags_desc = {
 
 STORE = connect("DEV")
 
-async def set_commands(bot):
-    @bot.command()
-    async def create(ctx, *, input):
-        try:
-            flags = await CreationFlags.convert(ctx, input)
-            new_flags = optionalInfo(
-                {"text": flags.text},
-                {"text": input[ends_at(flags.name.split()[0], input):]},
-                conditional=Conditional(bool(flags.text), "filename", flags.name, flags.name.split()[0])
-            )
+@command()
+async def create(ctx, *, input):
+    try:
+        flags = await CreationFlags.convert(ctx, input)
+        new_flags = optionalInfo(
+            {"text": flags.text},
+            {"text": input[ends_at(flags.name.split()[0], input):]},
+            conditional=Conditional(bool(flags.text), "filename", flags.name, flags.name.split()[0])
+        )
 
-            filename = dot_txt(repl_separators(new_flags["filename"]))
-            text = new_flags["text"]
-            await ctx.send(f"Preparing {filename}...")
-            check_file = await send_text_file(ctx, filename, text)
-            print(check_file)
+        filename = dot_txt(repl_separators(new_flags["filename"]))
+        text = new_flags["text"]
+        await ctx.send(f"Preparing {filename}...")
+        check_file = await send_text_file(ctx, filename, text)
+        print(check_file)
 
-        except Exception as e:
-            print(type(e))
-            print(e) #handle error
+    except Exception as e:
+        print(type(e))
+        print(e) #handle error
 
-    @bot.command()
-    async def desc(ctx):
-        help_text = "Hi! I'm the File Dude Bot, a list of my commands and flags are down below:\n"
-        help_text += "# Commands:\n"
-        lines = [f"`{key}`\n> {commands_desc[key]}\n" for key in commands_desc]
+@command()
+async def desc(ctx):
+    help_text = "Hi! I'm the File Dude Bot, a list of my commands and flags are down below:\n"
+    help_text += "# Commands:\n"
+    lines = [f"`{key}`\n> {commands_desc[key]}\n" for key in commands_desc]
 
-        help_text += "* " + "\n* ".join(lines) + "\n# Flags:\n"
+    help_text += "* " + "\n* ".join(lines) + "\n# Flags:\n"
 
-        lines = [f"`{key}`\n> {flags_desc[key]}\n" for key in flags_desc]
+    lines = [f"`{key}`\n> {flags_desc[key]}\n" for key in flags_desc]
 
-        help_text += "* " + "\n* ".join(lines)
+    help_text += "* " + "\n* ".join(lines)
 
-        await ctx.send(help_text)
+    await ctx.send(help_text)
 
-    @bot.command() 
-    async def parse(ctx, *, text):
-        if text:
-            await ctx.send(parse_text(text))
+@command()
+async def parse(ctx, *, text):
+    if text:
+        await ctx.send(parse_text(text))
+    else:
+        await ctx.send("I can't parse nothingness")
+
+@command()
+async def cp(ctx, *, input):
+    try:
+        flags = await CreationFlags.convert(ctx, input)
+        new_flags = optionalInfo(
+            {"text": flags.text},
+            {"text": input[ends_at(flags.name.split()[0], input):]},
+            conditional=Conditional(bool(flags.text), "filename", flags.name, flags.name.split()[0])
+        )
+
+        filename = dot_txt(repl_separators(new_flags["filename"]))
+        text = new_flags["text"]
+        await ctx.send(f"Preparing {filename}...")
+        await send_text_file(ctx, filename, parse_text(text))
+
+    except Exception as e:
+        print(type(e))
+        print(e) #handle error
+
+@command()
+async def get(ctx, *, input:str=""):
+    try:
+        print(input)
+        flags = await ReadFlags.convert(ctx, input)
+        dir_info = get_dir_info(
+            str(ctx.author),
+            re.sub(" *--folders", "/", flags.folders) if flags.folders else input
+        )
+        root_folder = dir_info["folder"]
+        file_name = dir_info["filename"]
+        if input:
+            if file_name:
+                await ctx.send(f"Trying to reach {file_name}")
+            elif flags.folders:
+                await ctx.send(f"Getting all your folders at {root_folder}/...")
+            else:
+                await ctx.send(f"Trying to reach all files in {root_folder}/ folder")
         else:
-            await ctx.send("I can't parse nothingness")
+            await ctx.send(f"Searching all your files at file dude's house...")
 
-    @bot.command()
-    async def cp(ctx, *, input):
-        try:
-            flags = await CreationFlags.convert(ctx, input)
-            new_flags = optionalInfo(
-                {"text": flags.text},
-                {"text": input[ends_at(flags.name.split()[0], input):]},
-                conditional=Conditional(bool(flags.text), "filename", flags.name, flags.name.split()[0])
-            )
+        results = STORE.get(
+            f"{root_folder}{'/' + file_name if file_name else ''}"
+        )
 
-            filename = dot_txt(repl_separators(new_flags["filename"]))
-            text = new_flags["text"]
-            await ctx.send(f"Preparing {filename}...")
-            await send_text_file(ctx, filename, parse_text(text))
-
-        except Exception as e:
-            print(type(e))
-            print(e) #handle error
-
-    @bot.command()
-    async def get(ctx, *, input:str=None):
-        try:
-            plain_folders = False
-            root_folder = str(ctx.author)
-            file_name = input
-            if input:
-                dir_split = [str(ctx.author), *input.split("/")]
-                file_name = dir_split.pop().strip()
-                if file_name:
-                    file_name = file_name.split()[0]
-                root_folder = "/".join(dir_split)
-                if not file_name:
-                    await ctx.send(f"Trying to reach all files in {root_folder}/ folder")
-                elif "--folders" in input:
-                    plain_folders = True
-                    root_folder = re.sub("/+$", "", root_folder)
-                    if not file_name.strip().startswith("--"):
-                        root_folder += "/" + file_name
-                    
-                    await ctx.send(f"Getting all your folders at {root_folder}/...")
-
-                elif not re.search(r"\.[a-zA-Z]+$", file_name):
-                    file_name += ".txt"
-                    await ctx.send(f"Trying to reach {file_name}")
-            else:
-                await ctx.send(f"Searching all your files at file dude's house...")
-
-            if plain_folders:
-                results = STORE.get(root_folder)
-                folders = list(filter(lambda result: result.type == "dir", results))
-                folders = [ 
-                    re.sub(f"^{root_folder}/", "", folder.path) + "/" for folder in folders 
-                ]
-                if folders:
-                    await ctx.send("Your folders are the following:" if folders else "You have no folders here.")
-                    await ctx.send("* " + "\n * ".join(folders))
-                else:
-                    await ctx.send("You have no folders here.")
-            
-            else:
-                results = STORE.get(
-                    f"{root_folder}{'/' + file_name if file_name else ''}"
+        if not results:
+            await ctx.send(f"Sorry, {'file' if file_name else 'folder'} not found :C")
+                
+        elif len(results) == 1:
+            result_bytes = io.BytesIO(results[0].decoded_content)
+            await ctx.send(file=discord.File(result_bytes, results[0].name))
+                
+        else:
+            files_found = []
+            folders_found = []
+            for content in results:
+                (folders_found if content.type == "dir" else files_found).append(
+                    path_prettify(root_folder, content.path, content.type == "dir")
                 )
 
-                if len(results) == 0:
-                    await ctx.send("Sorry, file not found :C")
-                    return 
+            message1 = (f"### I found these files in {root_folder}/:\n * " +
+            "\n * ".join(files_found)) if files_found else "### No files found."
                 
-                elif len(results) == 1:
-                    result_bytes = io.BytesIO(results[0].decoded_content)
-                    await ctx.send(file=discord.File(result_bytes, results[0].name))
+            message2 = (f"### I found these folders in {root_folder}/:\n * " +
+            "\n * ".join(folders_found)) if folders_found else "### No folders found."
                 
-                else:
-                    files_found = list(map(
-                        lambda content: content.path.replace(root_folder + "/", "").replace("/", " -> "),
-                        filter(
-                            lambda content: content.type != "dir",
-                            results
-                        )
-                    ))
+            await ctx.send(message1)
+            await ctx.send(message2)
 
-                    def key(a):
-                        return len(re.findall(" -> ", a))
+    except Exception as e:
+        print(type(e))
+        print(e)
 
-                    files_found.sort(key=key)
-
-                    folders_found = list(map(
-                        lambda content: content.path.replace(root_folder + "/", "") + "/",
-                        filter(
-                            lambda content: content.type == "dir",
-                            results
-                        )
-                    ))
-
-                    await ctx.send(
-                        f"### I found these files in {root_folder}/:\n * " +
-                        "\n * ".join(files_found)
-                    )
-                    if folders_found:
-                        await ctx.send(
-                            f"### I found these folders in {root_folder}/:\n * " + 
-                            "\n * ".join(folders_found)
-                        )
-
-        except Exception as e:
-            print(type(e))
-            print(e)
-    @bot.command()
-    async def delete(ctx, *, input:str=None):
-        try:
-            plain_folders = False
-            root_folder = str(ctx.author)
-            file_name = input
-            if input:
-                dir_split = [str(ctx.author), *input.split("/")]
-                file_name = dir_split.pop().strip().split()[0]
-                root_folder = "/".join(dir_split)
-
-                if not file_name:
-                    await ctx.send(f"Trying to delete all files in {root_folder}/ folder")
-                elif "--folders" in input:
-                    plain_folders = True
-                    root_folder = re.sub("/+$", "", root_folder)
-                    if not file_name.strip().startswith("--"):
-                        root_folder += "/" + file_name
-                    
-                    await ctx.send(f"Deleting all your folders at {root_folder}/...")
-
-                elif not re.search(r"\.[a-zA-Z]+$", file_name):
-                    file_name += ".txt"
-                    await ctx.send(f"Trying to delete {file_name}...")
+@command()
+async def delete(ctx, *, input:str=""):
+    try:
+        flags = await ReadFlags.convert(ctx, input)
+        print(flags.folders)
+        dir_info = get_dir_info(
+            str(ctx.author),
+            re.sub(" *--folders", "/", flags.folders) if flags.folders else input
+        )
+        root_folder =  dir_info["folder"]
+        file_name = dir_info["filename"]
+        if input:
+            if file_name:
+                await ctx.send(f"Trying to delete {file_name}...")
+            elif flags.folders:
+                await ctx.send(f"Deleting all your folders at {root_folder}/...")
             else:
-                await ctx.send(f"Deleting all your files at file dude's house...")
-
-            if plain_folders:
-                results = STORE.delete(root_folder, only_folders=True)
-                folders = list(filter(lambda result: result.type == "dir", results))
-                folders = [ 
-                    re.sub(f"^{root_folder}/", "", folder.path) + "/" for folder in folders 
-                ]
-                await ctx.send("The following folders were deleted:" if folders else "No folders deleted.")
-                await ctx.send("* " + "\n * ".join(folders))
+                await ctx.send(f"Trying to delete all files in {root_folder}/ folder")
+        else:
+            await ctx.send(f"Deleting all your files at file dude's house...")
             
-            else:
-                results = STORE.delete(
-                    f"{root_folder}{'/' + file_name if file_name else ''}"
+        results = STORE.delete(
+            f"{root_folder}{'/' + file_name if file_name else ''}",
+            only_folders=bool(flags.folders)
+        )
+        if not results:
+            await ctx.send(f"Sorry, {'file' if file_name else 'folder'} not found :C")
+        else:
+            files_deleted = []
+            folders_deleted = []
+            for content in results:
+                (folders_deleted if content["is_dir"] else files_deleted).append(
+                    path_prettify(root_folder, content["path"], content["is_dir"])
                 )
-
-                if len(results) == 0:
-                    await ctx.send("Sorry, file not found :C")
-                    return 
                 
-                elif len(results) == 1:
-                    result_bytes = io.BytesIO(results[0].decoded_content)
-                    await ctx.send(file=discord.File(result_bytes, results[0].name))
+            message1 = (f"### These files were deleted at {root_folder}/:\n * " +
+            "\n * ".join(files_deleted)) if files_deleted else "### No files deleted."
                 
-                else:
-                    files_deleted = list(map(
-                        lambda content: content["path"].replace(root_folder + "/", "").replace("/", " -> "),
-                        filter(
-                            lambda content: not content["is_dir"],
-                            results
-                        )
-                    ))
+            message2 = (f"### These folders were deleted in {root_folder}/:\n * " +
+            "\n * ".join(folders_deleted)) if folders_deleted else "### No folders deleted."
+                
+            await ctx.send(message1)
+            await ctx.send(message2)
 
-                    def key(a):
-                        return len(re.findall(" -> ", a))
+    except Exception as e:
+        print(type(e))
+        print(e)
 
-                    files_deleted.sort(key=key)
-
-                    folders_deleted = list(map(
-                        lambda content: content["path"].replace(root_folder + "/", "") + "/",
-                        filter(
-                            lambda content: content["is_dir"],
-                            results
-                        )
-                    ))
-
-                    await ctx.send(
-                        f"### These files were deleted at {root_folder}/:\n * " +
-                        "\n * ".join(files_deleted)
-                    )
-                    if folders_deleted:
-                        await ctx.send(
-                            f"### These folders were deleted in {root_folder}/:\n * " + 
-                            "\n * ".join(folders_deleted)
-                        )
-
-        except Exception as e:
-            print(type(e))
-            print(e)
+async def set_commands(bot: Bot):
+    bot.add_command(create)
+    bot.add_command(parse)
+    bot.add_command(cp)
+    bot.add_command(desc)
+    bot.add_command(get)
+    bot.add_command(delete)
 
     return bot
 
-def group_list(array:list, size:int):
-    result = []
-    if size >= len(array):
-        return [array]
-    
-    for i in range(0, len(array), size):
-        print(i + size)
-        if i + size < len(array):
-            result.append(array[i:(i + size)])
-        else:
-            result.append(array[i:])
-    return result
+def get_dir_info(root, path:str):
+    path = f"{root}/{path}"
+    is_folder = path.strip().endswith("/")
+    if is_folder:
+        folder = re.sub("/+$", "", path)
+        filename = ""
+    else:
+        comps = [x for x in path.split("/") if x ]
+        filename = dot_txt(comps.pop().split()[0])
+        folder = "/".join(comps)
+
+    return { "folder": folder, "filename": filename }
+
+def path_prettify (root_folder:str, path: str, is_folder=False):
+    no_root = re.sub(f"{root_folder}/", "", path)
+    return no_root + "/" if is_folder else no_root.replace("/", " -> ")

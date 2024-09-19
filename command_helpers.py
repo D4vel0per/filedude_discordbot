@@ -19,6 +19,9 @@ class CreationFlags (commands.FlagConverter, prefix="--", delimiter="="):
     name: str = "requirements.txt"
     text: str = ""
 
+class ReadFlags (commands.FlagConverter, prefix="--", delimiter=" "):
+    folders: str = commands.flag(positional=True, default=None)
+
 async def send_text_file(ctx, filename, text):
     folder = ""
     if "/" in filename:
