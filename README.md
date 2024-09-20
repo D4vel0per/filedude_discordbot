@@ -230,6 +230,6 @@ It gets or deletes all your folders
 
 - With a path:
 ```
-(!get or !delete) personal_stuff/passwords/ --folders 
+    (!get or !delete) personal_stuff/passwords/ --folders 
 ```
 In this case, it gets or deletes this path folders
