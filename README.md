@@ -107,6 +107,59 @@ Works like this:
 
 The bot would return you a requirements.txt file containing your text.
 
+- ### `!get`
+This command retrieves a file or a folder contents:
+It messages back a downloadable file from the path given by the user.
+You can also send a folder's path (it must end with '/') to get a list of it's files
+
+Works like this:
+
+- Getting all your files:
+```
+    !get
+```
+
+- Getting a single file:
+```
+    !get my_filename.txt
+```
+
+- Getting a single file inside a folder/folders:
+```
+    !get folder/folder_inside_folder/(folders...)/file.txt
+```
+
+- Getting all your files inside a folder:
+```
+    !get folder/
+```
+
+- ### `!delete`
+This command deletes a file or a folder contents:
+It messages back a list of the files and/or folders deleted from the path given by the user.
+You can also send a folder's path (it must end with '/') to delete it's files
+
+Works like this:
+
+- Deleting all your files:
+```
+    !delete
+```
+
+- Deleting a single file:
+```
+    !delete my_filename.txt
+```
+
+- Deleting a single file inside a folder/folders:
+```
+    !delete folder/folder_inside_folder/(folders...)/file.txt
+```
+
+- Deleting all your files inside a folder:
+```
+    !delete folder/
+```
 
 - ### `!desc`
 If you need to check which commands are available and what does everyone of
@@ -157,9 +210,26 @@ Where:
 
 Where: 
 
- `filedude.txt` -> File name
+`filedude.txt` -> File name
  
- `I AM THE FILE DUDE` -> File text content
+`I AM THE FILE DUDE` -> File text content
  
- > _Note: if no text is provided, the file text content will
- be set to_ " "
+> _Note: if no text is provided, the file text content will
+be set to_ " "
+
+- ### `--folders`
+Works with `!get` and `!delete`.
+This is a positional flag (it takes no values) that allows you to only apply the command to the folders.
+Works like this:
+
+- Without path:
+```
+    (!get or !delete) --folders # gets/deletes all your folders
+```
+It gets or deletes all your folders
+
+- With a path:
+```
+(!get or !delete) personal_stuff/passwords/ --folders 
+```
+In this case, it gets or deletes this path folders
