@@ -21,12 +21,15 @@ commands_desc = {
     "!parse": "Returns a requirements-like formatted version of what you passed as a argument",
     "!create": "Creates a text file containing the text from the user input",
     "!cp": "Fusion between !create and !parse: creates a requirements.txt file from user input",
+    "!get": "Returns the file specified by the user, using it's path. Add '/' at the end if it's a folder",
+    "!delete": "Deletes the file specified by the user, using it's path. Add '/' at the end if it's a folder",
     "!desc": "Prints this message"
 }
 
 flags_desc = {
     "--name=": "it goes after !create or !cp commands to indicate to the bot the file name",
-    "--text=": "it goes after !create or !cp commands to indicate to the bot the file content"
+    "--text=": "it goes after !create or !cp commands to indicate to the bot the file content",
+    "--folders": "it goes after the path entered by the user to only look for the folders in that path"
 }
 
 STORE = connect("DEV")
