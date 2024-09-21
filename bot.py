@@ -65,7 +65,7 @@ async def main(bot):
     bot = await set_commands(bot)
     await asyncio.gather(
         bot.start(token),
-        #check_bot()
+        check_bot()
     )
     await asyncio.sleep(605) # The server shuts down 10 minutes after disconnection
 
