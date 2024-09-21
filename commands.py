@@ -115,7 +115,7 @@ async def get(ctx, *, input:str=""):
             await ctx.send(f"Searching all your files at file dude's house...")
 
         results = STORE.get(
-            f"{root_folder}{'/' + file_name if file_name else ''}"
+            f"{root_folder}/{file_name if file_name else ''}"
         )
 
         if not results:
