@@ -2,9 +2,9 @@ import io
 import re
 import discord
 from discord.ext import commands
-from repo_handlers import connect
+from db_handlers import Store
 
-STORE = connect()
+STORE = Store()
 
 class Conditional:
     def __init__(self, cond:bool, prop:str, true, false):

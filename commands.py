@@ -3,7 +3,7 @@ import io
 import re
 import discord
 from discord.ext.commands import Bot, command
-from repo_handlers import connect
+from db_handlers import Store
 from command_helpers import (
     Conditional, 
     CreationFlags,
@@ -33,7 +33,7 @@ flags_desc = {
     "--folders": "it goes after the path entered by the user to only look for the folders in that path"
 }
 
-STORE = connect("DEV")
+STORE = Store()
 
 @command()
 async def create(ctx, *, input):
@@ -101,39 +101,40 @@ async def get(ctx, *, input:str=""):
         flags = await ReadFlags.convert(ctx, input)
         dir_info = get_dir_info(
             str(ctx.author),
-            re.sub(" *--folders", "/", flags.folders) if flags.folders else input
+            re.sub(" *--folders", "/", flags.folders) if "--folders" in input else input
         )
         root_folder = dir_info["folder"]
         file_name = dir_info["filename"]
         if input:
             if file_name:
-                await ctx.send(f"Trying to reach {file_name}")
-            elif flags.folders:
-                await ctx.send(f"Getting all your folders at {root_folder}/...")
+                await ctx.send(f"Trying to reach `{file_name}`")
+            elif "--folders" in input:
+                await ctx.send(f"Getting all your folders at `{root_folder}`...")
             else:
-                await ctx.send(f"Trying to reach all files in {root_folder}/ folder")
+                await ctx.send(f"Trying to reach all files in `{root_folder}` folder")
         else:
             await ctx.send(f"Searching all your files at file dude's house...")
 
         results = STORE.get(
-            f"{root_folder}/{file_name if file_name else ''}"
+            f"{root_folder}{file_name}"
         )
 
         if not results:
             await ctx.send(f"Sorry, {'file' if file_name else 'folder'} not found :C")
                 
-        elif len(results) == 1:
+        elif len(results["files"]) == 1 and "--folders" not in input:
             result_bytes = base64.b64decode(results["files"][0]["text_64"])
-            await ctx.send(file=discord.File(result_bytes, results[0].name))
+            f_name = get_dir_info(root_folder, results["files"][0]["filename"])["filename"]
+            await ctx.send(file=discord.File(io.BytesIO(result_bytes), f_name))
                 
         else:
             files_found = [ path_prettify(root_folder, file["filename"], False) for file in results["files"] ]
-            folders_found = [ path_prettify(root_folder, folder, False) for folder in results["folders"] ]
+            folders_found = [ path_prettify(root_folder, folder, True) for folder in results["folders"] ]
 
-            message1 = (f"### I found these files in {root_folder}/:\n * " +
+            message1 = (f"### I found these files in `{root_folder}`:\n * " +
             "\n * ".join(files_found)) if files_found else "### No files found."
                 
-            message2 = (f"### I found these folders in {root_folder}/:\n * " +
+            message2 = (f"### I found these folders in `{root_folder}`:\n * " +
             "\n * ".join(folders_found)) if folders_found else "### No folders found."
 
             if not flags.folders:   
@@ -141,7 +142,7 @@ async def get(ctx, *, input:str=""):
 
             await ctx.send(message2)
 
-    except Exception as e:
+    except Exception.with_traceback() as e:
         print(type(e))
         print(e)
 
@@ -151,34 +152,42 @@ async def delete(ctx, *, input:str=""):
         flags = await ReadFlags.convert(ctx, input)
         dir_info = get_dir_info(
             str(ctx.author),
-            re.sub(" *--folders", "/", flags.folders) if flags.folders else input
+            re.sub(" *--folders", "/", flags.folders) if "--folders" in input else input
         )
         root_folder =  dir_info["folder"]
         file_name = dir_info["filename"]
         if input:
             if file_name:
-                await ctx.send(f"Trying to delete {file_name}...")
-            elif flags.folders:
-                await ctx.send(f"Deleting all your folders at {root_folder}/...")
+                await ctx.send(f"Trying to delete `{file_name}`...")
+            elif "--folders" in input:
+                await ctx.send(f"Deleting all your folders at `{root_folder}`...")
             else:
-                await ctx.send(f"Trying to delete all files in {root_folder}/ folder")
+                await ctx.send(f"Trying to delete all files in `{root_folder}` folder")
         else:
             await ctx.send(f"Deleting all your files at file dude's house...")
             
         results = STORE.delete(
-            f"{root_folder}{'/' + file_name if file_name else ''}",
-            only_folders=bool(flags.folders)
+            f"{root_folder}{file_name}",
+            only_folders="--folders" in input
         )
         if not results:
             await ctx.send(f"Sorry, {'file' if file_name else 'folder'} not found :C")
         else:
-            files_deleted = [ path_prettify(root_folder, file["filename"], False) for file in results["files"] ]
-            folders_deleted = [ path_prettify(root_folder, folder, False) for folder in results["folders"] ]
+            files_deleted = [ 
+                path_prettify(
+                    root_folder, file["filename"], False
+                ) for file in results["files"]
+            ]
+            folders_deleted = [ 
+                path_prettify(
+                    root_folder, folder, True
+                ) for folder in results["folders"] 
+            ]
                 
-            message1 = (f"### These files were deleted at {root_folder}/:\n * " +
+            message1 = (f"### These files were deleted at `{root_folder}`:\n * " +
             "\n * ".join(files_deleted)) if files_deleted else "### No files deleted."
                 
-            message2 = (f"### These folders were deleted in {root_folder}/:\n * " +
+            message2 = (f"### These folders were deleted in `{root_folder}`:\n * " +
             "\n * ".join(folders_deleted)) if folders_deleted else "### No folders deleted."
                 
             await ctx.send(message1)
@@ -202,15 +211,15 @@ def get_dir_info(root, path:str):
     path = f"{root}/{path}"
     is_folder = path.strip().endswith("/")
     if is_folder:
-        folder = re.sub("/+$", "", path)
+        folder = re.sub("/+$", "/", path)
         filename = ""
     else:
         comps = [x for x in path.split("/") if x ]
         filename = dot_txt(comps.pop().split()[0])
-        folder = "/".join(comps)
+        folder = "/".join(comps) + "/"
 
     return { "folder": folder, "filename": filename }
 
 def path_prettify (root_folder:str, path: str, is_folder=False):
-    no_root = re.sub(f"{root_folder}/", "", path)
-    return no_root + "/" if is_folder else no_root.replace("/", " -> ")
+    no_root = re.sub(root_folder, "", path)
+    return no_root if is_folder else no_root.replace("/", " -> ")
