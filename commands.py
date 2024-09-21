@@ -1,3 +1,4 @@
+import base64
 import io
 import re
 import discord
@@ -122,16 +123,12 @@ async def get(ctx, *, input:str=""):
             await ctx.send(f"Sorry, {'file' if file_name else 'folder'} not found :C")
                 
         elif len(results) == 1:
-            result_bytes = io.BytesIO(results[0].decoded_content)
+            result_bytes = base64.b64decode(results["files"][0]["text_64"])
             await ctx.send(file=discord.File(result_bytes, results[0].name))
                 
         else:
-            files_found = []
-            folders_found = []
-            for content in results:
-                (folders_found if content.type == "dir" else files_found).append(
-                    path_prettify(root_folder, content.path, content.type == "dir")
-                )
+            files_found = [ path_prettify(root_folder, file["filename"], False) for file in results["files"] ]
+            folders_found = [ path_prettify(root_folder, folder, False) for folder in results["folders"] ]
 
             message1 = (f"### I found these files in {root_folder}/:\n * " +
             "\n * ".join(files_found)) if files_found else "### No files found."
@@ -175,12 +172,8 @@ async def delete(ctx, *, input:str=""):
         if not results:
             await ctx.send(f"Sorry, {'file' if file_name else 'folder'} not found :C")
         else:
-            files_deleted = []
-            folders_deleted = []
-            for content in results:
-                (folders_deleted if content["is_dir"] else files_deleted).append(
-                    path_prettify(root_folder, content["path"], content["is_dir"])
-                )
+            files_deleted = [ path_prettify(root_folder, file["filename"], False) for file in results["files"] ]
+            folders_deleted = [ path_prettify(root_folder, folder, False) for folder in results["folders"] ]
                 
             message1 = (f"### These files were deleted at {root_folder}/:\n * " +
             "\n * ".join(files_deleted)) if files_deleted else "### No files deleted."
