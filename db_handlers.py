@@ -32,8 +32,11 @@ class Store:
         if not response: return
 
         print(f"Trying to get {filename or path}...")
-        
-        inside_only_folders = lambda path1, path2: (path1 in path2) and (path1 != path2)
+
+        if only_folders:
+            inside_only_folders = lambda path1, path2: (path1 in path2) and (path1 != path2)
+        else:
+            inside_only_folders = lambda path1, path2: (path1 in path2)
         
         folders = { 
             content["path"] for content in response if inside_only_folders(path, content["path"])
@@ -56,15 +59,6 @@ class Store:
         user_name, path, filename = self.path_args(filename)
 
         delete_file(user_name, path, filename)
-
-        #if len(response["files"]) == 1:
-        #    delete_file(user_name, path, filename)
-        #elif not only_folders:
-        #    for file in response["files"]:
-        #        delete_file(*self.path_args(file["filename"]))
-        #else:
-        #    for folder in response["folders"]:
-        #        delete_file(user_name, folder)
 
         return response
         

@@ -137,7 +137,7 @@ async def get(ctx, *, input:str=""):
             message2 = (f"### I found these folders in `{root_folder}`:\n * " +
             "\n * ".join(folders_found)) if folders_found else "### No folders found."
 
-            if not flags.folders:   
+            if not "--folders" in input:   
                 await ctx.send(message1)
 
             await ctx.send(message2)
@@ -178,19 +178,26 @@ async def delete(ctx, *, input:str=""):
                     root_folder, file["filename"], False
                 ) for file in results["files"]
             ]
+
+            if not ("--folder" in input and file_name):
+                root_folder = str(ctx.author) + "/"
+
             folders_deleted = [ 
                 path_prettify(
-                    root_folder, folder, True
-                ) for folder in results["folders"] 
+                    root_folder, folder , True
+                ) for folder in results["folders"]
             ]
+
+            print("RESULTS DELETION: ", results)
                 
             message1 = (f"### These files were deleted at `{root_folder}`:\n * " +
             "\n * ".join(files_deleted)) if files_deleted else "### No files deleted."
                 
-            message2 = (f"### These folders were deleted in `{root_folder}`:\n * " +
+            message2 = (f"### Folders deleted:\n * " +
             "\n * ".join(folders_deleted)) if folders_deleted else "### No folders deleted."
                 
-            await ctx.send(message1)
+            if not "--folders" in input:   
+                await ctx.send(message1)
             await ctx.send(message2)
 
     except Exception as e:
