@@ -59,9 +59,8 @@ def get_file(user_name, path, filename=""):
     return files_response.data or []
 
 def write_file(user_name, path, filename, b_utf8, mode="BOTH"): # modes: "BOTH"/"UPDATE"/"CREATE"
-    user = get_user(user_name)
-    if not user: return
-
+    user = get_user(user_name) or create_user(user_name)
+    
     file_json = {
         "path": path,
         "filename": filename,
