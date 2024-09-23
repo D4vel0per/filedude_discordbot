@@ -129,7 +129,11 @@ async def get(ctx, *, input:str=""):
                 
         else:
             files_found = [ path_prettify(root_folder, file["filename"], False) for file in results["files"] ]
-            folders_found = [ path_prettify(root_folder, folder, True) for folder in results["folders"] ]
+            folders_found = [ 
+                path_prettify(root_folder, folder, True) for folder in results["folders"]
+                if folder != root_folder
+            ]
+            folders_found = [ folder for folder in folders_found if folder.strip() ]
 
             message1 = (f"### I found these files in `{root_folder}`:\n * " +
             "\n * ".join(files_found)) if files_found else "### No files found."
@@ -185,7 +189,7 @@ async def delete(ctx, *, input:str=""):
             folders_deleted = [ 
                 path_prettify(
                     root_folder, folder , True
-                ) for folder in results["folders"]
+                ) for folder in results["folders"] if folder != root_folder
             ]
 
             print("RESULTS DELETION: ", results)
